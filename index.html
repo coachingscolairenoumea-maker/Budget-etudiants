@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Budget Étudiant – PWA</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f172a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f172a;--muted:#94a3b8;--fg:#e5e7eb;--good:#22c55e;--bad:#ef4444;--card:#0b1220}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,#0f172a,#111827);color:var(--fg);min-height:100vh;padding:24px}
+.app{max-width:1200px;margin:0 auto} h1{margin:0 0 8px;font-size:28px;font-weight:700} .sub{color:var(--muted);margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:16px} @media(min-width:1080px){.grid{grid-template-columns:1.2fr .8fr}}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.card header{padding:14px 16px 0;color:var(--muted);font-size:14px} .card .content{padding:16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px} .kpi{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px}
+.kpi .label{font-size:12px;color:var(--muted)} .kpi .value{margin-top:4px;font-size:20px;font-weight:700}.good{color:var(--good)}.bad{color:var(--bad)}
+.row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px;border-bottom:1px dashed rgba(255,255,255,.06)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;color:#cbd5e1;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=number],input[type=text],input[type=date],input[type=month],button{height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0b1220;color:var(--fg);padding:0 12px;outline:none}
+button{background:linear-gradient(180deg,#2563eb,#1d4ed8);border:none;font-weight:600;cursor:pointer} button.secondary{background:transparent;border:1px solid rgba(255,255,255,.15)}
+.muted{color:var(--muted);font-size:12px} .tablewrap{max-height:360px;overflow:auto;border:1px solid rgba(255,255,255,.06);border-radius:12px}
+canvas{width:100%!important;height:340px!important} .grid2{display:grid;grid-template-columns:1fr;gap:16px} @media(min-width:700px){.grid2{grid-template-columns:1fr 1fr}}
+.progress{height:10px;background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden} .bar{height:100%;background:linear-gradient(90deg,#22c55e,#ef4444)}
+.remind{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.06)} .warn{color:#fbbf24}.danger{color:#fb7185}
+.tag{font-size:11px;opacity:.9}.small{font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>💸 Budget Étudiant — PWA</h1>
+  <p class="sub">Prévisionnel vs réalisé, rappels, duplication, scénarios + camembert des dépenses prévues. Installable & hors ligne.</p>
+
+  <div class="grid">
+    <section class="card"><header>Résumé</header><div class="content">
+      <div class="controls" style="justify-content:space-between;margin-bottom:8px">
+        <div><span class="muted">Mois :</span> <input id="monthPicker" type="month" /></div>
+        <div class="muted">Données locales. Hors ligne après 1ère ouverture.</div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="label">Revenus prévus</div><div id="kpi-rev-prev" class="value good">0 €</div></div>
+        <div class="kpi"><div class="label">Dépenses prévues</div><div id="kpi-dep-prev" class="value bad">0 €</div></div>
+        <div class="kpi"><div class="label">Solde prévu</div><div id="kpi-solde-prev" class="value">0 €</div></div>
+        <div class="kpi"><div class="label">Solde réalisé</div><div id="kpi-solde-real" class="value">0 €</div></div>
+      </div>
+    </div></section>
+
+    <section class="card"><header>Ajouter une ligne (Prévisionnel)</header><div class="content">
+      <div class="controls">
+        <select id="type"><option value="revenu">Revenu</option><option value="depense" selected>Dépense</option></select>
+        <select id="categorie">
+          <option value="logement">Logement 🏠</option><option value="alimentation">Alimentation 🛒</option>
+          <option value="transport">Transport 🚌</option><option value="loisirs">Loisirs 🎉</option>
+          <option value="abonnements">Abonnements 🔄</option><option value="sante">Santé 🩺</option>
+          <option value="etudes">Études 📚</option><option value="cadeaux">Cadeaux 🎁</option><option value="autres">Autres 🧩</option>
+        </select>
+        <input id="libelle" type="text" placeholder="Libellé (ex. Loyer, Courses...)" />
+        <input id="montant" type="number" min="0" step="0.01" placeholder="Montant (€)" />
+        <input id="due" type="date" />
+        <button id="add">Ajouter</button><button id="reset" class="secondary">Réinitialiser</button>
+      </div>
+      <div class="muted small">Optionnel : ajoute une <b>échéance</b> (date) pour les rappels.</div>
+    </div></section>
+
+    <section class="card"><header>Prévisionnel du mois</header><div class="content">
+      <div class="tablewrap"><ul class="list" id="list-prev"></ul></div>
+      <div class="controls" style="justify-content:flex-end;margin-top:8px">
+        <button id="export-prev" class="secondary">Exporter CSV (prévu)</button>
+        <button id="only-revenus" class="secondary">Garder uniquement revenus</button>
+      </div>
+    </div></section>
+
+    <section class="card"><header>Réalisation du mois</header><div class="content">
+      <div class="tablewrap"><ul class="list" id="list-real"></ul></div>
+      <div class="controls" style="justify-content:flex-end;margin-top:8px">
+        <button id="export-real" class="secondary">Exporter CSV (réalisé)</button>
+      </div>
+      <div class="muted small">Astuce : “Marquer réalisé” depuis le prévisionnel transfère une ligne ici.</div>
+    </div></section>
+
+    <section class="card"><header>Répartition des dépenses prévues & budgets</header><div class="content">
+      <div class="grid2">
+        <div><canvas id="chart-planned"></canvas></div>
+        <div>
+          <h3 style="margin:0 0 8px">Plafonds par catégorie</h3>
+          <div id="budgets"></div>
+          <div class="muted small">Les plafonds sont comparés aux dépenses <b>réalisées</b>.</div>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="card"><header>Rappels d’échéances</header><div class="content">
+      <div id="reminders"></div>
+      <div class="muted small">Les rappels sont calculés à partir des dates ajoutées dans le prévisionnel.</div>
+    </div></section>
+
+    <section class="card"><header>Scénarios “Et si…” & duplication</header><div class="content">
+      <div class="grid2">
+        <div>
+          <h3 style="margin:0 0 6px">Simulations rapides</h3>
+          <div class="controls" style="margin-bottom:8px"><label class="small">Réduire <b>Loisirs</b> de (€)</label><input id="sim-loisirs" type="number" min="0" step="1" value="0" /></div>
+          <div class="controls" style="margin-bottom:8px"><label class="small">Réduire <b>Alimentation</b> de (€)</label><input id="sim-alim" type="number" min="0" step="1" value="0" /></div>
+          <div class="controls" style="margin-bottom:8px"><label class="small">Augmenter <b>Revenus</b> de (€)</label><input id="sim-revenus" type="number" min="0" step="1" value="0" /></div>
+          <button id="apply-sim" class="secondary">Appliquer la simulation</button>
+          <div id="sim-result" class="muted small" style="margin-top:8px"></div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 6px">Dupliquer au mois suivant</h3>
+          <div class="muted small" style="margin-bottom:6px">Sélectionne les postes fixes à dupliquer (loyer, abonnements, transport).</div>
+          <div id="duplication"></div>
+          <div class="controls" style="margin-top:8px"><input id="dup-target" type="month" /> <button id="dup-apply">Dupliquer</button></div>
+          <div id="dup-msg" class="muted small"></div>
+        </div>
+      </div>
+    </div></section>
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./service-worker.js'); });
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const STORAGE_KEY='budget-etudiant-pwa'; const ICONS={logement:'🏠',alimentation:'🛒',transport:'🚌',loisirs:'🎉',abonnements:'🔄',sante:'🩺',etudes:'📚',cadeaux:'🎁',autres:'🧩'};
+const CATS=Object.keys(ICONS); let state={}, currentMonth='';
+const el=id=>document.getElementById(id); const fmt=n=>(n||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR', maximumFractionDigits:2});
+const monthKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+const ensureMonth=m=>{ if(!state[m]) state[m]={prev:[],real:[],budgets:{}}; };
+
+function load(){ try{ state=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ state={}; } currentMonth=monthKey(); ensureMonth(currentMonth); }
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function totalsPrev(m){ const a=state[m].prev; const rev=a.filter(i=>i.type==='revenu').reduce((x,y)=>x+Number(y.montant||0),0); const dep=a.filter(i=>i.type==='depense').reduce((x,y)=>x+Number(y.montant||0),0); return {rev,dep,solde:rev-dep}; }
+function totalsReal(m){ const a=state[m].real; const rev=a.filter(i=>i.type==='revenu').reduce((x,y)=>x+Number(y.montant||0),0); const dep=a.filter(i=>i.type==='depense').reduce((x,y)=>x+Number(y.montant||0),0); return {rev,dep,solde:rev-dep}; }
+
+function drawKPIs(){ const p=totalsPrev(currentMonth), r=totalsReal(currentMonth);
+  el('kpi-rev-prev').textContent=fmt(p.rev); el('kpi-dep-prev').textContent=fmt(p.dep); el('kpi-solde-prev').textContent=fmt(p.solde); el('kpi-solde-prev').className='value '+(p.solde>=0?'good':'bad');
+  el('kpi-solde-real').textContent=fmt(r.solde); el('kpi-solde-real').className='value '+(r.solde>=0?'good':'bad');
+}
+
+function escapeHtml(s){return String(s||'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\'':'&#39;'}[m]));}
+
+function rowPrev(it,idx){ const icon=ICONS[it.categorie]||'🧩', sign=it.type==='revenu'?'+':'-', color=it.type==='revenu'?'good':'bad';
+  const due=it.due?` <span class="tag">• échéance ${it.due}</span>`:''; const label=it.libelle?` – <span class="tag">${escapeHtml(it.libelle)}</span>`:'';
+  return `<li class="row"><span>${icon}</span><div><span class="pill">${it.categorie}</span>${label}${due}</div>
+    <div style="display:flex;gap:6px;align-items:center"><span class="amount ${color}">${sign}${fmt(it.montant)}</span>
+    <button class="secondary small" data-real="${idx}">Marquer réalisé</button><button class="secondary small" data-edit="${idx}">Éditer</button><button class="secondary small" data-del="${idx}">Supprimer</button></div></li>`;
+}
+function rowReal(it,idx){ const icon=ICONS[it.categorie]||'🧩', sign=it.type==='revenu'?'+':'-', color=it.type==='revenu'?'good':'bad';
+  const label=it.libelle?` – <span class="tag">${escapeHtml(it.libelle)}</span>`:'';
+  return `<li class="row"><span>${icon}</span><div><span class="pill">${it.categorie}</span>${label}</div>
+    <div style="display:flex;gap:6px;align-items:center"><span class="amount ${color}">${sign}${fmt(it.montant)}</span>
+    <button class="secondary small" data-edit-real="${idx}">Éditer</button><button class="secondary small" data-del-real="${idx}">Supprimer</button></div></li>`;
+}
+
+function drawLists(){
+  const l1=el('list-prev'), a1=state[currentMonth].prev;
+  l1.innerHTML=a1.length?a1.map(rowPrev).join(''):`<li class="row"><span>🗂️</span><div class="muted">Aucune ligne prévue.</div><div></div></li>`;
+  l1.querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',e=>{const i=+e.target.getAttribute('data-del'); a1.splice(i,1); save(); redraw();}));
+  l1.querySelectorAll('button[data-edit]').forEach(b=>b.addEventListener('click',e=>{const i=+e.target.getAttribute('data-edit'); const it=a1[i];
+    const lib=prompt('Libellé :', it.libelle||''); if(lib!==null) it.libelle=lib; const val=prompt('Montant (€) :', String(it.montant)); const n=parseFloat((val||'').replace(',','.')); if(!isNaN(n)&&n>0) it.montant=n;
+    const due=prompt('Échéance (AAAA-MM-JJ) :', it.due||''); if(due!==null) it.due=due; save(); redraw(); }));
+  l1.querySelectorAll('button[data-real]').forEach(b=>b.addEventListener('click',e=>{const i=+e.target.getAttribute('data-real'); const it=a1[i];
+    const val=prompt('Montant réellement payé (€) :', String(it.montant)); const n=parseFloat((val||'').replace(',','.')); const copy={type:it.type,categorie:it.categorie,libelle:it.libelle,montant:(isFinite(n)&&n>0?n:it.montant)};
+    state[currentMonth].real.push(copy); save(); redraw(); }));
+
+  const l2=el('list-real'), a2=state[currentMonth].real;
+  l2.innerHTML=a2.length?a2.map(rowReal).join(''):`<li class="row"><span>🗂️</span><div class="muted">Aucune ligne réalisée.</div><div></div></li>`;
+  l2.querySelectorAll('button[data-del-real]').forEach(b=>b.addEventListener('click',e=>{const i=+e.target.getAttribute('data-del-real'); a2.splice(i,1); save(); redraw();}));
+  l2.querySelectorAll('button[data-edit-real]').forEach(b=>b.addEventListener('click',e=>{const i=+e.target.getAttribute('data-edit-real'); const it=a2[i];
+    const lib=prompt('Libellé :', it.libelle||''); if(lib!==null) it.libelle=lib; const val=prompt('Montant (€) :', String(it.montant)); const n=parseFloat((val||'').replace(',','.')); if(!isNaN(n)&&n>0) it.montant=n;
+    save(); redraw(); }));
+}
+
+let chartPlanned;
+function drawPlanned(){
+  const ctx=el('chart-planned').getContext('2d'); const p=state[currentMonth].prev; const byCat={}; CATS.forEach(c=>byCat[c]=0);
+  p.forEach(i=>{ if(i.type==='depense') byCat[i.categorie]=(byCat[i.categorie]||0)+Number(i.montant||0); });
+  const labels=CATS.map(c=>`${ICONS[c]} ${c}`); const data=CATS.map(c=>byCat[c]);
+  if(chartPlanned) chartPlanned.destroy(); if(typeof Chart==='undefined') return;
+  chartPlanned=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data}]},options:{plugins:{legend:{labels:{color:'#cbd5e1'},position:'bottom'},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.raw)}`}}}}});
+}
+
+function drawBudgets(){
+  const wrap=el('budgets'); const budgets=state[currentMonth].budgets; const spent={}; CATS.forEach(c=>spent[c]=0);
+  state[currentMonth].real.filter(i=>i.type==='depense').forEach(i=>{spent[i.categorie]=(spent[i.categorie]||0)+Number(i.montant||0);});
+  wrap.innerHTML=CATS.map(cat=>{const cap=Number(budgets[cat]||0); const s=Number(spent[cat]||0); const p=cap>0?Math.min(100,Math.round(s*100/cap)):0;
+    const status=cap>0?`${p}% de ${fmt(cap)} (${fmt(s)})`:`${fmt(s)} dépensés`; const color=cap>0&&s>cap?'bad':'muted';
+    return `<div class="row" style="grid-template-columns:28px 1fr auto"><span>${ICONS[cat]}</span>
+      <div><div style="display:flex;justify-content:space-between;align-items:center"><strong style="text-transform:capitalize">${cat}</strong><span class="${color} small">${status}</span></div>
+      <div class="progress"><div class="bar" style="width:${p}%;"></div></div></div>
+      <div><input type="number" min="0" step="0.01" data-bud="${cat}" placeholder="Plafond €" value="${cap?String(cap):''}"/></div></div>`;}).join('');
+  wrap.querySelectorAll('input[data-bud]').forEach(inp=>{inp.addEventListener('change',e=>{const cat=e.target.getAttribute('data-bud'); const val=parseFloat(e.target.value); state[currentMonth].budgets[cat]=isFinite(val)&&val>0?val:0; save(); redraw();});});
+}
+
+function drawReminders(){
+  const box=el('reminders'); const arr=state[currentMonth].prev.filter(i=>i.due && i.type==='depense');
+  if(arr.length===0){box.innerHTML=`<div class="muted small">Aucune échéance pour ce mois.</div>`; return;}
+  const today=new Date(todayStr());
+  box.innerHTML=arr.map(it=>{const icon=ICONS[it.categorie]||'🧩'; const due=new Date(it.due); const diff=Math.round((due-today)/(1000*60*60*24));
+    let cls='',msg=''; if(diff<0){cls='danger'; msg=`en retard de ${Math.abs(diff)} j`;} else if(diff===0){cls='danger'; msg='aujourd’hui'; } else if(diff<=3){cls='warn'; msg=`dans ${diff} j`; } else {cls='muted'; msg=`dans ${diff} j`; }
+    return `<div class="remind"><div><strong>${icon} ${escapeHtml(it.libelle||it.categorie)}</strong> — ${fmt(it.montant)} <span class="${cls} small">(${it.due} · ${msg})</span></div>
+      <button class="secondary small" data-realize="${it.libelle||it.categorie}|${it.categorie}|${it.montant}">Marquer payé</button></div>`;}).join('');
+  box.querySelectorAll('button[data-realize]').forEach(b=>{b.addEventListener('click',e=>{const [lib,categorie,montant]=e.currentTarget.getAttribute('data-realize').split('|'); state[currentMonth].real.push({type:'depense',categorie,libelle:lib,montant:Number(montant)}); save(); redraw();});});
+}
+
+function drawDuplication(){
+  const wrap=el('duplication'); const prev=state[currentMonth].prev.filter(i=>i.type==='depense');
+  if(prev.length===0){wrap.innerHTML=`<div class="muted small">Aucune dépense prévue à dupliquer.</div>`; return;}
+  wrap.innerHTML=prev.map((it,idx)=>`<label class="small" style="display:flex;gap:8px;align-items:center;padding:4px 0">
+    <input type="checkbox" data-idx="${idx}" checked /><span>${ICONS[it.categorie]||'🧩'} <strong>${escapeHtml(it.libelle||it.categorie)}</strong> — ${fmt(it.montant)}</span></label>`).join('');
+}
+
+function exportCSV(kind){
+  const arr=state[currentMonth][kind]; const headers=['mois','type','categorie','libelle','montant'];
+  const rows=arr.map(i=>[currentMonth,i.type,i.categorie,(i.libelle||'').replace(/;/g,','),String(i.montant).replace('.',',')]);
+  const csv=[headers.join(';')].concat(rows.map(r=>r.join(';'))).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`budget_${kind}_${currentMonth}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+
+function applySimulation(){
+  const p=totalsPrev(currentMonth); const base=p.solde; const redLoisirs=Number(el('sim-loisirs').value||0); const redAlim=Number(el('sim-alim').value||0); const addRev=Number(el('sim-revenus').value||0);
+  const simulated=base+redLoisirs+redAlim+addRev; el('sim-result').textContent=`Solde prévu actuel : ${fmt(base)} → Solde simulé : ${fmt(simulated)}`;
+}
+
+function redraw(){ drawKPIs(); drawLists(); drawPlanned(); drawBudgets(); drawReminders(); drawDuplication(); }
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  load(); el('monthPicker').value=currentMonth; el('dup-target').value=monthKey(new Date(new Date().setMonth(new Date().getMonth()+1))); redraw();
+  el('monthPicker').addEventListener('change', e=>{currentMonth=e.target.value||monthKey(); ensureMonth(currentMonth); save(); redraw();});
+  el('add').addEventListener('click', ()=>{const type=el('type').value, categorie=el('categorie').value, libelle=el('libelle').value.trim(), montant=parseFloat(el('montant').value), due=el('due').value||'';
+    if(!isFinite(montant)||montant<=0){el('montant').focus(); return;} state[currentMonth].prev.push({type,categorie,libelle,montant,due}); el('libelle').value=''; el('montant').value=''; el('due').value=''; save(); redraw();});
+  el('reset').addEventListener('click', ()=>{ if(confirm('Réinitialiser tout le prévisionnel & réalisé du mois ?')){ state[currentMonth]={prev:[],real:[],budgets:state[currentMonth].budgets||{}}; save(); redraw(); } });
+  el('only-revenus').addEventListener('click', ()=>{ state[currentMonth].prev=state[currentMonth].prev.filter(i=>i.type==='revenu'); save(); redraw(); });
+  el('export-prev').addEventListener('click', ()=>exportCSV('prev')); el('export-real').addEventListener('click', ()=>exportCSV('real'));
+  el('apply-sim').addEventListener('click', applySimulation);
+  el('dup-apply').addEventListener('click', ()=>{const target=el('dup-target').value||monthKey(); if(!state[target]) state[target]={prev:[],real:[],budgets:{}};
+    const checks=document.querySelectorAll('#duplication input[type=checkbox][data-idx]'); let n=0; checks.forEach(c=>{if(c.checked){const it=state[currentMonth].prev[Number(c.getAttribute('data-idx'))];
+      state[target].prev.push({type:it.type,categorie:it.categorie,libelle:it.libelle,montant:it.montant,due:''}); n++;}}); save(); el('dup-msg').textContent=`${n} poste(s) dupliqué(s) vers ${target}.`; });
+});
+</script>
+</body>
+</html>
