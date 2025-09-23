@@ -1,7 +1,7 @@
 {
-  "name": "Budget Étudiant",
+  "name": "Budget Étudiants",
   "short_name": "Budget",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
