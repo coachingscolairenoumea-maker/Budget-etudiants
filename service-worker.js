@@ -1,4 +1,4 @@
-const CACHE_NAME = 'budget-etudiant-v1';
+const CACHE_NAME = 'budget-etudiant-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -33,3 +33,4 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
   }
 });
+
